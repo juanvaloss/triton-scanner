@@ -1,0 +1,4 @@
+Scanning file: tests/syntax_error_unbalanced.py
+Syntax error (line 15): syntax error
+
+TOTAL tokens: 41   |   Lexical errors: 0   |   Syntax errors: 1   |   Semantic issues: 0

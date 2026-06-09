@@ -1,70 +1,112 @@
 /* ============================================================================
- *  triton_scanner.l  --  Lexical analyzer (scanner) for Triton GPU kernels
+ *  triton_scanner.l  --  Lexical analyzer for the Triton compiler
  * ----------------------------------------------------------------------------
- *  COURSE : TC3002B - Module #3 Compilers - Step I (Lexical Analysis Phase)
- *  TOOL   : UNIX lex / Flex (as seen in class).  No regex library is used:
- *           every pattern below is written as a regular expression that Flex
- *           compiles into a single deterministic finite automaton (DFA).
+ *  PHASE I (lex):  recognise lexemes, classify them as tokens, build the
+ *                  symbol table, report unknown symbols.
  *
- *  WHAT THIS FILE DOES
- *    Reads a Triton source file character by character and produces:
- *      (1) the SEQUENCE OF TOKENS, one row per lexeme, with its Token ID and,
- *          for identifiers, a reference into the symbol table;
- *      (2) the SYMBOL TABLE of all distinct identifiers (printed at EOF);
- *      (3) a clear ERROR MESSAGE for every symbol that does not belong to the
- *          language.
+ *  THIS REVISION ALSO SERVES PHASE II (yacc):
+ *    - Every action now RETURNS the Bison token id (instead of only printing
+ *      a row), so the parser declared in triton_parser.y can drive yylex().
+ *    - For tokens that carry a value (IDENTIFIER, NAMESPACE, TYPE, STRING_LIT,
+ *      INT_LIT, FLOAT_LIT) the lexeme / numeric value is placed in yylval so
+ *      semantic actions in the parser can read it.
+ *    - A new logical-line terminator token NEWLINE is emitted ONLY when we
+ *      are at paren_depth == 0.  Inside parentheses, brackets or braces, a
+ *      real '\n' is silently skipped, which is exactly how Python allows
+ *      multi-line expressions and is essential for the parser to accept
+ *      typical kernel signatures and calls.
  *
- *  A LEX FILE HAS THREE SECTIONS, separated by %% :
- *      DEFINITION SECTION  -> C declarations + %options + named patterns
+ *  THE THREE LEX SECTIONS ARE UNCHANGED IN SHAPE
+ *      DEFINITION SECTION  -> includes, options, named patterns, helpers
  *      RULES SECTION       -> pattern { action } pairs
- *      USER CODE SECTION   -> ordinary C (here: classifier, emitter, main)
+ *      USER CODE SECTION   -> plain C (here: the emit helper and yywrap)
  *
- *  RELATION WITH OTHER FILES
- *    - tokens.h / tokens.c : the Token IDs and their printable names.
- *    - symtab.h / symtab.c : the symbol table this scanner fills.
+ *  RUNTIME MODES (selected from main.c via a global flag)
+ *      verbose = 1  ->  the emit helper prints the "SEQUENCE OF TOKENS" row
+ *                       (Step I style) AND returns the token to the parser.
+ *      verbose = 0  ->  silent; tokens are only returned to the parser.
  * ==========================================================================*/
 
 
 /* ======================= 1. DEFINITION SECTION ===========================*/
 %{
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "tokens.h"
 #include "symtab.h"
+#include "triton_parser.tab.h"     /* token IDs + yylval (%union) type     */
 
-/* Flex defines and maintains this for us because of "%option yylineno".
- * We declare it extern so the helper functions below can read it.           */
 extern int yylineno;
 
-/* Running counters used in the final summary.                               */
-static long g_token_count = 0;   /* number of valid tokens emitted           */
-static long g_error_count = 0;   /* number of unknown-symbol errors          */
+/* Counters used in the final summary. */
+long g_token_count = 0;
+long g_lexical_error_count = 0;
+
+/* Paren depth.  >0 means we are inside ( [ or { somewhere; newlines are
+ * suppressed in that case, mirroring Python's implicit line continuation. */
+static int paren_depth = 0;
+
+/* Verbose mode flag (set from main).  When non-zero, every emitted token is
+ * also printed as a row of the SEQUENCE OF TOKENS table.                    */
+int g_lex_verbose = 0;
+
+/* Standalone-lex flag.  When non-zero we are running in -l mode (no parser
+ * is consuming our output), so the scanner itself populates the symbol
+ * table on every IDENTIFIER.  In -p / -s modes this flag is OFF: the parser
+ * calls sym_use only for IDENTIFIERS in real use positions (not for the
+ * member name after a DOT), avoiding both double counting and false
+ * positives in the "used but not declared" semantic check.                  */
+int g_lex_standalone = 0;
+
+/* Header printed once when verbose mode is on. */
+void scanner_print_header(void)
+{
+    if (!g_lex_verbose) return;
+    printf("================= SEQUENCE OF TOKENS =================\n");
+    printf(" %-5s  %-3s  %-12s  %-22s  %s\n",
+           "LINE", "ID", "TOKEN", "LEXEME", "ATTRIBUTE");
+    printf(" %-5s  %-3s  %-12s  %-22s  %s\n",
+           "-----", "---", "------------", "----------------------",
+           "---------");
+}
+
+/* Optionally print one row of the token stream, always return the token.
+ * 'attr' is a short extra column ("-" or e.g. an int literal value).        */
+static int emit(int bison_id, const char *attr)
+{
+    g_token_count++;
+    if (g_lex_verbose) {
+        printf(" %-5d  %-3d  %-12s  %-22s  %s\n",
+               yylineno, token_display_id(bison_id), token_name(bison_id),
+               yytext, attr ? attr : "-");
+    }
+    return bison_id;
+}
 
 /* ---- Reserved-word tables -------------------------------------------------
- * The classic technique seen in class: the scanner has ONE rule for the
- * "word" shape {ID}.  When a word is matched, we look it up in these tables
- * to decide whether it is a reserved word or a plain identifier.  This keeps
- * the rule section short and the reserved-word list easy to maintain.
- * Each table ends with a NULL sentinel so the lookup loop knows where to stop.
- * --------------------------------------------------------------------------*/
+ * The classic technique: one rule for the {ID} shape, then look the word up
+ * here.  Unlike Step I, classify_word now returns a SPECIFIC token id per
+ * keyword (KW_DEF, KW_RETURN, ...), because the parser needs to distinguish
+ * them.  Namespaces and types remain grouped (parser only cares about the
+ * category).                                                                */
 
-/* Python keywords that a Triton kernel actually needs. Unnecessary Python
- * keywords (lambda, yield, try, class, ...) are intentionally left out, as
- * the specification asks us to include only what is required for the goal.  */
-static const char *const keywords[] = {
-    "def", "return", "if", "elif", "else", "for", "while", "in",
-    "import", "from", "as", "pass", "and", "or", "not", "is",
-    "None", "True", "False", NULL
+typedef struct { const char *word; int bison_id; } KwEntry;
+
+static const KwEntry keyword_table[] = {
+    { "def",    KW_DEF    }, { "return", KW_RETURN },
+    { "if",     KW_IF     }, { "elif",   KW_ELIF   }, { "else",  KW_ELSE  },
+    { "for",    KW_FOR    }, { "while",  KW_WHILE  }, { "in",    KW_IN    },
+    { "import", KW_IMPORT }, { "from",   KW_FROM   }, { "as",    KW_AS    },
+    { "pass",   KW_PASS   },
+    { "and",    KW_AND    }, { "or",     KW_OR     }, { "not",   KW_NOT   },
+    { "is",     KW_IS     },
+    { "None",   KW_NONE   }, { "True",   KW_TRUE   }, { "False", KW_FALSE },
+    { NULL, 0 }
 };
 
-/* The two Triton namespaces.  Recognising them as a dedicated token class is
- * what makes the token stream "Triton-oriented": every Triton built-in call
- * appears as  NAMESPACE DOT IDENTIFIER  (e.g.  tl . load ).                  */
-static const char *const namespaces[] = {
-    "triton", "tl", NULL
-};
+static const char *const namespaces[] = { "triton", "tl", NULL };
 
-/* Triton scalar data types and the compile-time-constant marker constexpr.  */
 static const char *const types[] = {
     "constexpr",
     "float16", "float32", "float64", "bfloat16",
@@ -73,61 +115,30 @@ static const char *const types[] = {
     "bool", NULL
 };
 
-/* Linear membership test in a NULL-terminated string table.                 */
-static int in_table(const char *word, const char *const table[])
+static int in_string_table(const char *w, const char *const t[])
 {
-    for (int i = 0; table[i] != NULL; i++)
-        if (strcmp(word, table[i]) == 0)
-            return 1;
+    for (int i = 0; t[i] != NULL; i++)
+        if (strcmp(w, t[i]) == 0) return 1;
     return 0;
 }
 
-/* Decide the category of a word matched by the {ID} pattern.
- * Order matters only for readability here, because the three tables are
- * disjoint (no string belongs to two of them).                             */
-static TokenId classify_word(const char *word)
+/* Classify a word.  Returns either a specific KW_* id, NAMESPACE, TYPE,
+ * or IDENTIFIER.                                                            */
+static int classify_word(const char *w)
 {
-    if (in_table(word, keywords))   return T_KEYWORD;
-    if (in_table(word, namespaces)) return T_NAMESPACE;
-    if (in_table(word, types))      return T_TYPE;
-    return T_IDENTIFIER;            /* default: a user-defined name           */
-}
-
-/* Print one row of the token sequence.
- *   id     : the Token ID (see tokens.h)
- *   lexeme : the exact text matched (yytext)
- *   attr   : extra attribute, or NULL.  For identifiers we pass the symbol
- *            table reference ("#3"); for everything else it is "-".
- * The columns mirror the <token, attribute> pair notation used in class.    */
-static void emit(TokenId id, const char *lexeme, const char *attr)
-{
-    g_token_count++;
-    printf(" %-5d  %-3d  %-11s  %-22s  %s\n",
-           yylineno, (int)id, token_name(id), lexeme, attr ? attr : "-");
-}
-
-/* Header printed once, above the token rows.                                */
-static void print_header(void)
-{
-    printf("================= SEQUENCE OF TOKENS =================\n");
-    printf(" %-5s  %-3s  %-11s  %-22s  %s\n",
-           "LINE", "ID", "TOKEN", "LEXEME", "SYMTAB");
-    printf(" %-5s  %-3s  %-11s  %-22s  %s\n",
-           "-----", "---", "-----------", "----------------------", "------");
+    for (int i = 0; keyword_table[i].word != NULL; i++)
+        if (strcmp(w, keyword_table[i].word) == 0)
+            return keyword_table[i].bison_id;
+    if (in_string_table(w, namespaces)) return NAMESPACE;
+    if (in_string_table(w, types))      return TYPE;
+    return IDENTIFIER;
 }
 %}
 
-/* ---- Flex options --------------------------------------------------------
- *   yylineno          : keep an automatic 1-based line counter in yylineno.
- *   noinput / nounput : do not emit the input()/unput() helper functions
- *                       (we never call them), which keeps -Wall output clean.
- * --------------------------------------------------------------------------*/
 %option yylineno
 %option noinput nounput
+%option noyywrap
 
-/* ---- Named regular expressions -------------------------------------------
- * Giving names to common sub-patterns makes the rules section read almost
- * like the formal lexical specification in the report.                      */
 DIGIT   [0-9]
 LETTER  [A-Za-z_]
 ID      {LETTER}({LETTER}|{DIGIT})*
@@ -135,153 +146,121 @@ INT     {DIGIT}+
 FLOAT   {DIGIT}+"."{DIGIT}+([eE][+-]?{DIGIT}+)?|{DIGIT}+[eE][+-]?{DIGIT}+
 WS      [ \t\r]+
 
-/* Exclusive start condition used to swallow triple-quoted docstrings.
- * "%x" means that while we are inside DOCSTRING only the <DOCSTRING> rules
- * are active, so the normal rules cannot accidentally fire on the body.     */
 %x DOCSTRING
 
-
-/* ========================== 2. RULES SECTION =============================*/
 %%
 
- /* ----- whitespace, line breaks and comments: skipped, no token emitted -- */
-{WS}              { /* spaces, tabs and CR carry no token                  */ }
-\n                { /* newline: yylineno was already advanced by Flex      */ }
-"#".*             { /* line comment: from '#' up to (but not incl.) EOL    */ }
+ /* ----- whitespace and line comments: skipped, no token emitted --------- */
+{WS}              { /* skip spaces, tabs, CR */ }
+"#".*             { /* skip line comment */ }
 
- /* ----- triple-quoted docstrings are documentation, not code: skip them -- */
-\"\"\"            { BEGIN(DOCSTRING); }   /* enter docstring mode on """      */
-'''               { BEGIN(DOCSTRING); }   /* ... or on '''                    */
-<DOCSTRING>\"\"\"  { BEGIN(INITIAL);  }   /* leave docstring mode             */
-<DOCSTRING>'''     { BEGIN(INITIAL);  }
-<DOCSTRING>\n      { /* keep counting source lines (yylineno auto)         */ }
-<DOCSTRING>.       { /* swallow every other character of the docstring     */ }
-
- /* ----- single-line string literals -------------------------------------- *
-  * A string is a quote, any run of non-quote / escaped chars, then a quote.
-  * Newlines are excluded so an unterminated string cannot eat the rest of
-  * the file. Both " and ' are supported, mirroring Python.                  */
-\"([^\"\\\n]|\\.)*\"   { emit(T_STRING, yytext, NULL); }
-'([^'\\\n]|\\.)*'      { emit(T_STRING, yytext, NULL); }
-
- /* ----- numeric literals (FLOAT listed first; longest-match still decides) */
-{FLOAT}           { emit(T_FLOAT, yytext, NULL); }
-{INT}             { emit(T_INT,   yytext, NULL); }
-
- /* ----- decorator marker -------------------------------------------------- *
-  * '@' introduces a decorator. The decorated name (e.g. triton.jit) then
-  * flows as the tokens NAMESPACE DOT IDENTIFIER, so @triton.jit becomes
-  *      AT  NAMESPACE(triton)  DOT  IDENTIFIER(jit).                         */
-"@"               { emit(T_AT, yytext, NULL); }
-
- /* ----- multi-character operators (placed before their 1-char prefixes) -- */
-"**"              { emit(T_DSTAR,   yytext, NULL); }
-"//"              { emit(T_DSLASH,  yytext, NULL); }
-"=="              { emit(T_EQ,      yytext, NULL); }
-"!="              { emit(T_NEQ,     yytext, NULL); }
-"<="              { emit(T_LE,      yytext, NULL); }
-">="              { emit(T_GE,      yytext, NULL); }
-"+="              { emit(T_PLUSEQ,  yytext, NULL); }
-"-="              { emit(T_MINUSEQ, yytext, NULL); }
-"*="              { emit(T_STAREQ,  yytext, NULL); }
-"/="              { emit(T_SLASHEQ, yytext, NULL); }
-"->"              { emit(T_ARROW,   yytext, NULL); }
-
- /* ----- single-character operators --------------------------------------- */
-"="               { emit(T_ASSIGN,  yytext, NULL); }
-"+"               { emit(T_PLUS,    yytext, NULL); }
-"-"               { emit(T_MINUS,   yytext, NULL); }
-"*"               { emit(T_STAR,    yytext, NULL); }
-"/"               { emit(T_SLASH,   yytext, NULL); }
-"%"               { emit(T_PERCENT, yytext, NULL); }
-"<"               { emit(T_LT,      yytext, NULL); }
-">"               { emit(T_GT,      yytext, NULL); }
-
- /* ----- delimiters / punctuation ----------------------------------------- */
-"("               { emit(T_LPAREN,    yytext, NULL); }
-")"               { emit(T_RPAREN,    yytext, NULL); }
-"["               { emit(T_LBRACKET,  yytext, NULL); }
-"]"               { emit(T_RBRACKET,  yytext, NULL); }
-"{"               { emit(T_LBRACE,    yytext, NULL); }
-"}"               { emit(T_RBRACE,    yytext, NULL); }
-","               { emit(T_COMMA,     yytext, NULL); }
-":"               { emit(T_COLON,     yytext, NULL); }
-"."               { emit(T_DOT,       yytext, NULL); }
-";"               { emit(T_SEMICOLON, yytext, NULL); }
-
- /* ----- words: keyword / namespace / type / identifier ------------------- *
-  * One rule recognises the shape of any word; classify_word() then tells us
-  * which of the four word categories it is. Only true identifiers are stored
-  * in the symbol table (and only there do we attach a "#index" attribute).  */
-{ID}              {
-                      TokenId id = classify_word(yytext);
-                      if (id == T_IDENTIFIER) {
-                          int idx = sym_insert(yytext, yylineno);
-                          char ref[32];
-                          snprintf(ref, sizeof ref, "#%d", idx);
-                          emit(T_IDENTIFIER, yytext, ref);
-                      } else {
-                          emit(id, yytext, NULL);
+ /* ----- newline: NEWLINE token only at paren depth 0 -------------------- */
+\n                {
+                      if (paren_depth == 0) {
+                          /* NEWLINE is a parser synchronisation token; it
+                           * is not part of the program's semantic token
+                           * stream, so we neither count it in g_token_count
+                           * nor print it in the verbose table.              */
+                          return NEWLINE;
                       }
+                      /* inside parens: silently swallow                    */
                   }
 
- /* ----- catch-all: any remaining single character is a lexical error ----- *
-  * The regex '.' matches one character except newline, so this rule fires on
-  * symbols outside the Triton alphabet (e.g. '$', '?', '\'). It must be the
-  * LAST rule: every legal single character already has its own rule above,
-  * and on equal match length Flex prefers the earlier rule.                 */
+ /* ----- triple-quoted docstrings: skip the whole block ------------------ */
+\"\"\"            { BEGIN(DOCSTRING); }
+'''               { BEGIN(DOCSTRING); }
+<DOCSTRING>\"\"\"  { BEGIN(INITIAL); }
+<DOCSTRING>'''     { BEGIN(INITIAL); }
+<DOCSTRING>\n      { /* count source lines (yylineno is automatic) */ }
+<DOCSTRING>.       { /* swallow */ }
+
+ /* ----- single-line string literals ------------------------------------- */
+\"([^\"\\\n]|\\.)*\"   {
+                          yylval.str = strdup(yytext);
+                          return emit(STRING_LIT, NULL);
+                      }
+'([^'\\\n]|\\.)*'      {
+                          yylval.str = strdup(yytext);
+                          return emit(STRING_LIT, NULL);
+                      }
+
+ /* ----- numeric literals (FLOAT first; longest match decides anyway) ---- */
+{FLOAT}           {
+                      yylval.dval = strtod(yytext, NULL);
+                      return emit(FLOAT_LIT, yytext);
+                  }
+{INT}             {
+                      yylval.ival = strtol(yytext, NULL, 10);
+                      return emit(INT_LIT, yytext);
+                  }
+
+ /* ----- decorator marker ------------------------------------------------- */
+"@"               { return emit(AT, NULL); }
+
+ /* ----- multi-character operators (BEFORE their one-char prefixes) ------ */
+"**"              { return emit(DSTAR,   NULL); }
+"//"              { return emit(DSLASH,  NULL); }
+"=="              { return emit(EQ,      NULL); }
+"!="              { return emit(NEQ,     NULL); }
+"<="              { return emit(LE,      NULL); }
+">="              { return emit(GE,      NULL); }
+"+="              { return emit(PLUSEQ,  NULL); }
+"-="              { return emit(MINUSEQ, NULL); }
+"*="              { return emit(STAREQ,  NULL); }
+"/="              { return emit(SLASHEQ, NULL); }
+"->"              { return emit(ARROW,   NULL); }
+
+ /* ----- single-character operators -------------------------------------- */
+"="               { return emit(ASSIGN,  NULL); }
+"+"               { return emit(PLUS,    NULL); }
+"-"               { return emit(MINUS,   NULL); }
+"*"               { return emit(STAR,    NULL); }
+"/"               { return emit(SLASH,   NULL); }
+"%"               { return emit(PERCENT, NULL); }
+"<"               { return emit(LT,      NULL); }
+">"               { return emit(GT,      NULL); }
+
+ /* ----- delimiters / punctuation; bracketing ones also adjust paren_depth*/
+"("               { paren_depth++; return emit(LPAREN,   NULL); }
+")"               { if (paren_depth > 0) paren_depth--; return emit(RPAREN, NULL); }
+"["               { paren_depth++; return emit(LBRACKET, NULL); }
+"]"               { if (paren_depth > 0) paren_depth--; return emit(RBRACKET, NULL); }
+"{"               { paren_depth++; return emit(LBRACE,   NULL); }
+"}"               { if (paren_depth > 0) paren_depth--; return emit(RBRACE,   NULL); }
+","               { return emit(COMMA,     NULL); }
+":"               { return emit(COLON,     NULL); }
+"."               { return emit(DOT,       NULL); }
+";"               { return emit(SEMICOLON, NULL); }
+
+ /* ----- words: keyword / namespace / type / identifier ------------------ */
+{ID}              {
+                      int id = classify_word(yytext);
+                      if (id == IDENTIFIER || id == NAMESPACE || id == TYPE) {
+                          yylval.str = strdup(yytext);
+                      }
+                      /* Lex-only mode: the scanner is the only thing
+                       * filling the symbol table, so we record every
+                       * IDENTIFIER occurrence here (Step I behaviour).
+                       * When the parser is running, it does the recording
+                       * with correct context (e.g. skipping the member
+                       * after a DOT).                                       */
+                      if (g_lex_standalone && id == IDENTIFIER) {
+                          sym_use(yytext, yylineno);
+                      }
+                      return emit(id, NULL);
+                  }
+
+ /* ----- catch-all: unknown character is a LEXICAL ERROR ----------------- */
 .                 {
-                      g_error_count++;
+                      g_lexical_error_count++;
                       fprintf(stderr,
                           "Lexical error (line %d): unknown symbol '%s'\n",
                           yylineno, yytext);
+                      /* do not return a token; keep scanning              */
                   }
 %%
 
-
 /* ======================= 3. USER CODE SECTION ============================*/
 
-/* Program entry point.
- *   - With a filename argument, scan that file.
- *   - Otherwise scan standard input (handy for quick manual tests).
- * yylex() runs the DFA until end of input; none of our rules call return,
- * so it processes the whole file and only then hands control back here.     */
-int main(int argc, char **argv)
-{
-    /* Line-buffer stdout so that error messages (written to stderr) appear in
-     * the correct position relative to the token rows when both streams are
-     * viewed together, e.g.   ./triton_scanner file.py 2>&1                  */
-    setvbuf(stdout, NULL, _IOLBF, 0);
-
-    if (argc > 1) {
-        yyin = fopen(argv[1], "r");
-        if (yyin == NULL) {
-            fprintf(stderr, "error: cannot open input file '%s'\n", argv[1]);
-            return 1;
-        }
-        printf("Scanning file: %s\n", argv[1]);
-    } else {
-        printf("Scanning standard input (press Ctrl-D to finish):\n");
-    }
-
-    print_header();
-    yylex();                 /* drive the scanner over the entire input      */
-    sym_print();             /* dump the symbol table built along the way    */
-
-    printf("\nTOTAL tokens: %ld   |   Lexical errors: %ld\n",
-           g_token_count, g_error_count);
-
-    if (yyin != NULL && yyin != stdin)
-        fclose(yyin);
-
-    /* Exit status: 0 if clean, 1 if any lexical error was reported.         */
-    return (g_error_count > 0) ? 1 : 0;
-}
-
-/* yywrap() is called when the scanner reaches EOF. Returning 1 means "there
- * is no further input", so scanning stops. We have a single input source,
- * hence the constant 1 (this is the form shown in the course material).     */
-int yywrap(void)
-{
-    return 1;
-}
+/* yywrap defaulted out via %option noyywrap, so nothing more is needed in
+ * this file.  main() lives in main.c.                                       */

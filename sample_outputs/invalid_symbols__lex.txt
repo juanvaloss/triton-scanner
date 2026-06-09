@@ -1,0 +1,57 @@
+Scanning file: tests/invalid_symbols.py
+================= SEQUENCE OF TOKENS =================
+ LINE   ID   TOKEN         LEXEME                  ATTRIBUTE
+ -----  ---  ------------  ----------------------  ---------
+ 4      9    KW_IMPORT     import                  -
+ 4      20   NAMESPACE     triton                  -
+ 5      9    KW_IMPORT     import                  -
+ 5      20   NAMESPACE     triton                  -
+ 5      53   DOT           .                       -
+ 5      22   IDENTIFIER    language                -
+ 5      11   KW_AS         as                      -
+ 5      20   NAMESPACE     tl                      -
+ 8      26   AT            @                       -
+ 8      20   NAMESPACE     triton                  -
+ 8      53   DOT           .                       -
+ 8      22   IDENTIFIER    jit                     -
+ 9      1    KW_DEF        def                     -
+ 9      22   IDENTIFIER    bad_kernel              -
+ 9      45   LPAREN        (                       -
+ 9      22   IDENTIFIER    x_ptr                   -
+ 9      51   COMMA         ,                       -
+ 9      22   IDENTIFIER    n                       -
+ 9      46   RPAREN        )                       -
+ 9      52   COLON         :                       -
+ 10     22   IDENTIFIER    a                       -
+ 10     27   ASSIGN        =                       -
+ 10     22   IDENTIFIER    x_ptr                   -
+Lexical error (line 10): unknown symbol '$'
+ 10     23   INT_LIT       5                       5
+ 11     22   IDENTIFIER    b                       -
+ 11     27   ASSIGN        =                       -
+ 11     22   IDENTIFIER    a                       -
+Lexical error (line 11): unknown symbol '?'
+ 11     23   INT_LIT       3                       3
+ 12     22   IDENTIFIER    c                       -
+ 12     27   ASSIGN        =                       -
+ 12     22   IDENTIFIER    a                       -
+Lexical error (line 12): unknown symbol '&'
+ 12     22   IDENTIFIER    b                       -
+ 13     2    KW_RETURN     return                  -
+ 13     22   IDENTIFIER    c                       -
+
+=================== SYMBOL TABLE ===================
+ IDX   NAME                    DECLARED   DECL-LINE  USE-COUNT
+ ----  ----------------------  --------   ---------  ---------
+ 0     language                NO         -          1
+ 1     jit                     NO         -          1
+ 2     bad_kernel              NO         -          1
+ 3     x_ptr                   NO         -          2
+ 4     n                       NO         -          1
+ 5     a                       NO         -          3
+ 6     b                       NO         -          2
+ 7     c                       NO         -          2
+====================================================
+Distinct identifiers: 8
+
+TOTAL tokens: 34   |   Lexical errors: 3

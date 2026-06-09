@@ -1,0 +1,4 @@
+Scanning file: tests/semantic_undeclared_use.py
+Semantic warning (line 16): identifier 'undeclared_var' is used but never declared
+
+TOTAL tokens: 37   |   Lexical errors: 0   |   Syntax errors: 0   |   Semantic issues: 1

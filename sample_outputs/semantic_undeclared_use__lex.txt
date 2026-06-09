@@ -1,0 +1,59 @@
+Scanning file: tests/semantic_undeclared_use.py
+================= SEQUENCE OF TOKENS =================
+ LINE   ID   TOKEN         LEXEME                  ATTRIBUTE
+ -----  ---  ------------  ----------------------  ---------
+ 9      9    KW_IMPORT     import                  -
+ 9      20   NAMESPACE     triton                  -
+ 10     9    KW_IMPORT     import                  -
+ 10     20   NAMESPACE     triton                  -
+ 10     53   DOT           .                       -
+ 10     22   IDENTIFIER    language                -
+ 10     11   KW_AS         as                      -
+ 10     20   NAMESPACE     tl                      -
+ 13     26   AT            @                       -
+ 13     20   NAMESPACE     triton                  -
+ 13     53   DOT           .                       -
+ 13     22   IDENTIFIER    jit                     -
+ 14     1    KW_DEF        def                     -
+ 14     22   IDENTIFIER    kernel_with_undeclared  -
+ 14     45   LPAREN        (                       -
+ 14     22   IDENTIFIER    x_ptr                   -
+ 14     51   COMMA         ,                       -
+ 14     22   IDENTIFIER    n_elements              -
+ 14     46   RPAREN        )                       -
+ 14     52   COLON         :                       -
+ 15     22   IDENTIFIER    pid                     -
+ 15     27   ASSIGN        =                       -
+ 15     20   NAMESPACE     tl                      -
+ 15     53   DOT           .                       -
+ 15     22   IDENTIFIER    program_id              -
+ 15     45   LPAREN        (                       -
+ 15     22   IDENTIFIER    axis                    -
+ 15     27   ASSIGN        =                       -
+ 15     23   INT_LIT       0                       0
+ 15     46   RPAREN        )                       -
+ 16     22   IDENTIFIER    x                       -
+ 16     27   ASSIGN        =                       -
+ 16     22   IDENTIFIER    undeclared_var          -
+ 16     28   PLUS          +                       -
+ 16     22   IDENTIFIER    pid                     -
+ 17     2    KW_RETURN     return                  -
+ 17     22   IDENTIFIER    x                       -
+
+=================== SYMBOL TABLE ===================
+ IDX   NAME                    DECLARED   DECL-LINE  USE-COUNT
+ ----  ----------------------  --------   ---------  ---------
+ 0     language                NO         -          1
+ 1     jit                     NO         -          1
+ 2     kernel_with_undeclared  NO         -          1
+ 3     x_ptr                   NO         -          1
+ 4     n_elements              NO         -          1
+ 5     pid                     NO         -          2
+ 6     program_id              NO         -          1
+ 7     axis                    NO         -          1
+ 8     x                       NO         -          2
+ 9     undeclared_var          NO         -          1
+====================================================
+Distinct identifiers: 10
+
+TOTAL tokens: 37   |   Lexical errors: 0

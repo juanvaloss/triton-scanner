@@ -1,89 +1,95 @@
 /* ============================================================================
  * symtab.c  --  Symbol-table implementation (array + linear search)
  * ----------------------------------------------------------------------------
- * PURPOSE
- *   Implements the interface declared in symtab.h.  Builds the preliminary
- *   symbol table for the Triton scanner: one entry per distinct identifier.
- *
- * RELATION WITH OTHER FILES
- *   - symtab.h          : the interface this file implements.
- *   - triton_scanner.l  : the only caller of sym_insert()/sym_print().
- *
- * ALGORITHMS
- *   sym_lookup : linear scan comparing names with strcmp  -> O(n).
- *   sym_insert : lookup; if found, ++count; else append a new row -> O(n).
- *   sym_print  : iterate and print every row in insertion order  -> O(n).
+ * Implements symtab.h.  Same algorithmic choices as Step I (linear scan
+ * over a fixed array) plus the new declared / used distinction needed by
+ * the semantic phase.
  * ==========================================================================*/
 
 #include <stdio.h>
 #include <string.h>
 #include "symtab.h"
+#include "tokens.h"
 
-/* The table itself plus a counter of how many rows are in use.
- * 'static' keeps these names private to this translation unit; the rest of
- * the program touches the table only through the functions below.           */
 static SymbolEntry table[SYM_MAX_ENTRIES];
 static int         n_entries = 0;
 
 int sym_lookup(const char *name)
 {
-    for (int i = 0; i < n_entries; i++) {
+    for (int i = 0; i < n_entries; i++)
         if (strcmp(table[i].name, name) == 0)
-            return i;            /* found: return its index                  */
-    }
-    return -1;                   /* not present                              */
+            return i;
+    return -1;
 }
 
-int sym_insert(const char *name, int line)
+/* Create a fresh row for a name not yet in the table.  Returns its index
+ * or -1 if the table is full.                                              */
+static int new_entry(const char *name, int line)
 {
-    /* Already known? Just count one more occurrence and reuse the index.     */
-    int idx = sym_lookup(name);
-    if (idx != -1) {
-        table[idx].count++;
-        return idx;
-    }
-
-    /* New identifier, but is there room left?                                */
     if (n_entries >= SYM_MAX_ENTRIES) {
-        fprintf(stderr,
-                "symtab: table full (%d entries), cannot store '%s'\n",
+        fprintf(stderr, "symtab: table full (%d), cannot store '%s'\n",
                 SYM_MAX_ENTRIES, name);
         return -1;
     }
-
-    /* Create a new row.  strncpy + explicit NUL guarantees no buffer overrun
-     * even if the identifier were longer than SYM_MAX_NAME-1 characters.     */
-    idx = n_entries++;
+    int idx = n_entries++;
     strncpy(table[idx].name, name, SYM_MAX_NAME - 1);
     table[idx].name[SYM_MAX_NAME - 1] = '\0';
-    table[idx].token_id   = T_IDENTIFIER;
-    table[idx].first_line = line;
-    table[idx].count      = 1;
+    table[idx].first_line   = line;
+    table[idx].use_count    = 0;
+    table[idx].declared     = 0;
+    table[idx].declare_line = -1;
     return idx;
 }
 
-int sym_size(void)
+int sym_declare(const char *name, int line)
 {
-    return n_entries;
+    int idx = sym_lookup(name);
+    if (idx == -1) idx = new_entry(name, line);
+    if (idx == -1) return -1;
+    if (!table[idx].declared) {
+        table[idx].declared     = 1;
+        table[idx].declare_line = line;
+    }
+    return idx;
+}
+
+int sym_use(const char *name, int line)
+{
+    int idx = sym_lookup(name);
+    if (idx == -1) idx = new_entry(name, line);
+    if (idx == -1) return -1;
+    table[idx].use_count++;
+    return idx;
+}
+
+int sym_size(void) { return n_entries; }
+
+const SymbolEntry *sym_get(int idx)
+{
+    if (idx < 0 || idx >= n_entries) return NULL;
+    return &table[idx];
 }
 
 void sym_print(void)
 {
-    printf("\n");
-    printf("=================== SYMBOL TABLE ===================\n");
-    printf(" %-4s  %-24s  %-11s  %-9s  %s\n",
-           "IDX", "NAME", "TOKEN", "1ST-LINE", "COUNT");
-    printf(" %-4s  %-24s  %-11s  %-9s  %s\n",
-           "----", "------------------------", "-----------",
-           "---------", "-----");
-
+    printf("\n=================== SYMBOL TABLE ===================\n");
+    printf(" %-4s  %-22s  %-9s  %-9s  %s\n",
+           "IDX", "NAME", "DECLARED", "DECL-LINE", "USE-COUNT");
+    printf(" %-4s  %-22s  %-9s  %-9s  %s\n",
+           "----", "----------------------", "--------",
+           "---------", "---------");
     for (int i = 0; i < n_entries; i++) {
-        printf(" %-4d  %-24s  %-11s  %-9d  %d\n",
+        char dl[16];
+        if (table[i].declared)
+            snprintf(dl, sizeof dl, "%d", table[i].declare_line);
+        else
+            snprintf(dl, sizeof dl, "-");
+        printf(" %-4d  %-22s  %-9s  %-9s  %d\n",
                i,
                table[i].name,
-               token_name(table[i].token_id),
-               table[i].first_line,
-               table[i].count);
+               table[i].declared ? "yes" : "NO",
+               dl,
+               table[i].use_count);
     }
     printf("====================================================\n");
     printf("Distinct identifiers: %d\n", n_entries);

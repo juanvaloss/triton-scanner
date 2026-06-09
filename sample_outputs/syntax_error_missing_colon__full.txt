@@ -1,0 +1,5 @@
+Scanning file: tests/syntax_error_missing_colon.py
+Syntax error (line 14): syntax error
+Semantic error (line 13): decorator is not followed by a function definition
+
+TOTAL tokens: 41   |   Lexical errors: 0   |   Syntax errors: 1   |   Semantic issues: 1

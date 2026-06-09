@@ -1,0 +1,3 @@
+Scanning file: tests/add_kernel.py
+
+TOTAL tokens: 109   |   Lexical errors: 0   |   Syntax errors: 0   |   Semantic issues: 0

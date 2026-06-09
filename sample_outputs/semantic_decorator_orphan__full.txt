@@ -1,0 +1,4 @@
+Scanning file: tests/semantic_decorator_orphan.py
+Semantic error (line 13): decorator is not followed by a function definition
+
+TOTAL tokens: 15   |   Lexical errors: 0   |   Syntax errors: 0   |   Semantic issues: 1

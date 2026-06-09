@@ -1,0 +1,9 @@
+Scanning file: tests/invalid_symbols.py
+Lexical error (line 10): unknown symbol '$'
+Syntax error (line 10): syntax error
+Lexical error (line 11): unknown symbol '?'
+Syntax error (line 11): syntax error
+Lexical error (line 12): unknown symbol '&'
+Syntax error (line 12): syntax error
+
+TOTAL tokens: 34   |   Lexical errors: 3   |   Syntax errors: 3   |   Semantic issues: 0

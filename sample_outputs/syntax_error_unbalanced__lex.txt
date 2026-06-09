@@ -1,0 +1,63 @@
+Scanning file: tests/syntax_error_unbalanced.py
+================= SEQUENCE OF TOKENS =================
+ LINE   ID   TOKEN         LEXEME                  ATTRIBUTE
+ -----  ---  ------------  ----------------------  ---------
+ 8      9    KW_IMPORT     import                  -
+ 8      20   NAMESPACE     triton                  -
+ 9      9    KW_IMPORT     import                  -
+ 9      20   NAMESPACE     triton                  -
+ 9      53   DOT           .                       -
+ 9      22   IDENTIFIER    language                -
+ 9      11   KW_AS         as                      -
+ 9      20   NAMESPACE     tl                      -
+ 12     26   AT            @                       -
+ 12     20   NAMESPACE     triton                  -
+ 12     53   DOT           .                       -
+ 12     22   IDENTIFIER    jit                     -
+ 13     1    KW_DEF        def                     -
+ 13     22   IDENTIFIER    unbalanced_kernel       -
+ 13     45   LPAREN        (                       -
+ 13     22   IDENTIFIER    x_ptr                   -
+ 13     51   COMMA         ,                       -
+ 13     22   IDENTIFIER    n_elements              -
+ 13     46   RPAREN        )                       -
+ 13     52   COLON         :                       -
+ 14     22   IDENTIFIER    pid                     -
+ 14     27   ASSIGN        =                       -
+ 14     20   NAMESPACE     tl                      -
+ 14     53   DOT           .                       -
+ 14     22   IDENTIFIER    program_id              -
+ 14     45   LPAREN        (                       -
+ 14     22   IDENTIFIER    axis                    -
+ 14     27   ASSIGN        =                       -
+ 14     23   INT_LIT       0                       0
+ 15     22   IDENTIFIER    x                       -
+ 15     27   ASSIGN        =                       -
+ 15     20   NAMESPACE     tl                      -
+ 15     53   DOT           .                       -
+ 15     22   IDENTIFIER    load                    -
+ 15     45   LPAREN        (                       -
+ 15     22   IDENTIFIER    x_ptr                   -
+ 15     28   PLUS          +                       -
+ 15     22   IDENTIFIER    pid                     -
+ 15     46   RPAREN        )                       -
+ 16     2    KW_RETURN     return                  -
+ 16     22   IDENTIFIER    x                       -
+
+=================== SYMBOL TABLE ===================
+ IDX   NAME                    DECLARED   DECL-LINE  USE-COUNT
+ ----  ----------------------  --------   ---------  ---------
+ 0     language                NO         -          1
+ 1     jit                     NO         -          1
+ 2     unbalanced_kernel       NO         -          1
+ 3     x_ptr                   NO         -          2
+ 4     n_elements              NO         -          1
+ 5     pid                     NO         -          2
+ 6     program_id              NO         -          1
+ 7     axis                    NO         -          1
+ 8     x                       NO         -          2
+ 9     load                    NO         -          1
+====================================================
+Distinct identifiers: 10
+
+TOTAL tokens: 41   |   Lexical errors: 0
