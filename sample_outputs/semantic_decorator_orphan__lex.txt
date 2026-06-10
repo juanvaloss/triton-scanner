@@ -1,22 +1,22 @@
 Scanning file: tests/semantic_decorator_orphan.py
 ================= SEQUENCE OF TOKENS =================
- LINE   ID   TOKEN         LEXEME                  ATTRIBUTE
- -----  ---  ------------  ----------------------  ---------
- 8      9    KW_IMPORT     import                  -
- 8      20   NAMESPACE     triton                  -
- 9      9    KW_IMPORT     import                  -
- 9      20   NAMESPACE     triton                  -
- 9      53   DOT           .                       -
- 9      22   IDENTIFIER    language                -
- 9      11   KW_AS         as                      -
- 9      20   NAMESPACE     tl                      -
- 12     26   AT            @                       -
- 12     20   NAMESPACE     triton                  -
- 12     53   DOT           .                       -
- 12     22   IDENTIFIER    jit                     -
- 13     22   IDENTIFIER    x                       -
- 13     27   ASSIGN        =                       -
- 13     23   INT_LIT       0                       0
+ LINE   ID   TOKEN         LEXEME
+ -----  ---  ------------  ------
+ 8      3    KW_IMPORT     import
+ 8      6    NAMESPACE     triton
+ 9      3    KW_IMPORT     import
+ 9      6    NAMESPACE     triton
+ 9      30   DOT           .
+ 9      8    IDENTIFIER    language
+ 9      5    KW_AS         as
+ 9      6    NAMESPACE     tl
+ 12     12   AT            @
+ 12     6    NAMESPACE     triton
+ 12     30   DOT           .
+ 12     8    IDENTIFIER    jit
+ 13     8    IDENTIFIER    x
+ 13     13   ASSIGN        =
+ 13     9    INT_LIT       0
 
 =================== SYMBOL TABLE ===================
  IDX   NAME                    DECLARED   DECL-LINE  USE-COUNT

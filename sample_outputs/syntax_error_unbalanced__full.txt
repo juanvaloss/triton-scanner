@@ -1,4 +1,5 @@
 Scanning file: tests/syntax_error_unbalanced.py
 Syntax error (line 15): syntax error
+Semantic warning (line 15): identifier 'pid' is used but never declared
 
-TOTAL tokens: 41   |   Lexical errors: 0   |   Syntax errors: 1   |   Semantic issues: 0
+TOTAL tokens: 41   |   Lexical errors: 0   |   Syntax errors: 1   |   Semantic issues: 1

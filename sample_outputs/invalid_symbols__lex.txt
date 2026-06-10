@@ -1,44 +1,44 @@
 Scanning file: tests/invalid_symbols.py
 ================= SEQUENCE OF TOKENS =================
- LINE   ID   TOKEN         LEXEME                  ATTRIBUTE
- -----  ---  ------------  ----------------------  ---------
- 4      9    KW_IMPORT     import                  -
- 4      20   NAMESPACE     triton                  -
- 5      9    KW_IMPORT     import                  -
- 5      20   NAMESPACE     triton                  -
- 5      53   DOT           .                       -
- 5      22   IDENTIFIER    language                -
- 5      11   KW_AS         as                      -
- 5      20   NAMESPACE     tl                      -
- 8      26   AT            @                       -
- 8      20   NAMESPACE     triton                  -
- 8      53   DOT           .                       -
- 8      22   IDENTIFIER    jit                     -
- 9      1    KW_DEF        def                     -
- 9      22   IDENTIFIER    bad_kernel              -
- 9      45   LPAREN        (                       -
- 9      22   IDENTIFIER    x_ptr                   -
- 9      51   COMMA         ,                       -
- 9      22   IDENTIFIER    n                       -
- 9      46   RPAREN        )                       -
- 9      52   COLON         :                       -
- 10     22   IDENTIFIER    a                       -
- 10     27   ASSIGN        =                       -
- 10     22   IDENTIFIER    x_ptr                   -
+ LINE   ID   TOKEN         LEXEME
+ -----  ---  ------------  ------
+ 4      3    KW_IMPORT     import
+ 4      6    NAMESPACE     triton
+ 5      3    KW_IMPORT     import
+ 5      6    NAMESPACE     triton
+ 5      30   DOT           .
+ 5      8    IDENTIFIER    language
+ 5      5    KW_AS         as
+ 5      6    NAMESPACE     tl
+ 8      12   AT            @
+ 8      6    NAMESPACE     triton
+ 8      30   DOT           .
+ 8      8    IDENTIFIER    jit
+ 9      1    KW_DEF        def
+ 9      8    IDENTIFIER    bad_kernel
+ 9      24   LPAREN        (
+ 9      8    IDENTIFIER    x_ptr
+ 9      28   COMMA         ,
+ 9      8    IDENTIFIER    n
+ 9      25   RPAREN        )
+ 9      29   COLON         :
+ 10     8    IDENTIFIER    a
+ 10     13   ASSIGN        =
+ 10     8    IDENTIFIER    x_ptr
 Lexical error (line 10): unknown symbol '$'
- 10     23   INT_LIT       5                       5
- 11     22   IDENTIFIER    b                       -
- 11     27   ASSIGN        =                       -
- 11     22   IDENTIFIER    a                       -
+ 10     9    INT_LIT       5
+ 11     8    IDENTIFIER    b
+ 11     13   ASSIGN        =
+ 11     8    IDENTIFIER    a
 Lexical error (line 11): unknown symbol '?'
- 11     23   INT_LIT       3                       3
- 12     22   IDENTIFIER    c                       -
- 12     27   ASSIGN        =                       -
- 12     22   IDENTIFIER    a                       -
+ 11     9    INT_LIT       3
+ 12     8    IDENTIFIER    c
+ 12     13   ASSIGN        =
+ 12     8    IDENTIFIER    a
 Lexical error (line 12): unknown symbol '&'
- 12     22   IDENTIFIER    b                       -
- 13     2    KW_RETURN     return                  -
- 13     22   IDENTIFIER    c                       -
+ 12     8    IDENTIFIER    b
+ 13     2    KW_RETURN     return
+ 13     8    IDENTIFIER    c
 
 =================== SYMBOL TABLE ===================
  IDX   NAME                    DECLARED   DECL-LINE  USE-COUNT

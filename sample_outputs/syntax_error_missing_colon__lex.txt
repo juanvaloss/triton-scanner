@@ -1,48 +1,48 @@
 Scanning file: tests/syntax_error_missing_colon.py
 ================= SEQUENCE OF TOKENS =================
- LINE   ID   TOKEN         LEXEME                  ATTRIBUTE
- -----  ---  ------------  ----------------------  ---------
- 8      9    KW_IMPORT     import                  -
- 8      20   NAMESPACE     triton                  -
- 9      9    KW_IMPORT     import                  -
- 9      20   NAMESPACE     triton                  -
- 9      53   DOT           .                       -
- 9      22   IDENTIFIER    language                -
- 9      11   KW_AS         as                      -
- 9      20   NAMESPACE     tl                      -
- 12     26   AT            @                       -
- 12     20   NAMESPACE     triton                  -
- 12     53   DOT           .                       -
- 12     22   IDENTIFIER    jit                     -
- 13     1    KW_DEF        def                     -
- 13     22   IDENTIFIER    broken_kernel           -
- 13     45   LPAREN        (                       -
- 13     22   IDENTIFIER    x_ptr                   -
- 13     51   COMMA         ,                       -
- 13     22   IDENTIFIER    n_elements              -
- 13     46   RPAREN        )                       -
- 14     22   IDENTIFIER    pid                     -
- 14     27   ASSIGN        =                       -
- 14     20   NAMESPACE     tl                      -
- 14     53   DOT           .                       -
- 14     22   IDENTIFIER    program_id              -
- 14     45   LPAREN        (                       -
- 14     22   IDENTIFIER    axis                    -
- 14     27   ASSIGN        =                       -
- 14     23   INT_LIT       0                       0
- 14     46   RPAREN        )                       -
- 15     22   IDENTIFIER    x                       -
- 15     27   ASSIGN        =                       -
- 15     20   NAMESPACE     tl                      -
- 15     53   DOT           .                       -
- 15     22   IDENTIFIER    load                    -
- 15     45   LPAREN        (                       -
- 15     22   IDENTIFIER    x_ptr                   -
- 15     28   PLUS          +                       -
- 15     22   IDENTIFIER    pid                     -
- 15     46   RPAREN        )                       -
- 16     2    KW_RETURN     return                  -
- 16     22   IDENTIFIER    x                       -
+ LINE   ID   TOKEN         LEXEME
+ -----  ---  ------------  ------
+ 8      3    KW_IMPORT     import
+ 8      6    NAMESPACE     triton
+ 9      3    KW_IMPORT     import
+ 9      6    NAMESPACE     triton
+ 9      30   DOT           .
+ 9      8    IDENTIFIER    language
+ 9      5    KW_AS         as
+ 9      6    NAMESPACE     tl
+ 12     12   AT            @
+ 12     6    NAMESPACE     triton
+ 12     30   DOT           .
+ 12     8    IDENTIFIER    jit
+ 13     1    KW_DEF        def
+ 13     8    IDENTIFIER    broken_kernel
+ 13     24   LPAREN        (
+ 13     8    IDENTIFIER    x_ptr
+ 13     28   COMMA         ,
+ 13     8    IDENTIFIER    n_elements
+ 13     25   RPAREN        )
+ 14     8    IDENTIFIER    pid
+ 14     13   ASSIGN        =
+ 14     6    NAMESPACE     tl
+ 14     30   DOT           .
+ 14     8    IDENTIFIER    program_id
+ 14     24   LPAREN        (
+ 14     8    IDENTIFIER    axis
+ 14     13   ASSIGN        =
+ 14     9    INT_LIT       0
+ 14     25   RPAREN        )
+ 15     8    IDENTIFIER    x
+ 15     13   ASSIGN        =
+ 15     6    NAMESPACE     tl
+ 15     30   DOT           .
+ 15     8    IDENTIFIER    load
+ 15     24   LPAREN        (
+ 15     8    IDENTIFIER    x_ptr
+ 15     14   PLUS          +
+ 15     8    IDENTIFIER    pid
+ 15     25   RPAREN        )
+ 16     2    KW_RETURN     return
+ 16     8    IDENTIFIER    x
 
 =================== SYMBOL TABLE ===================
  IDX   NAME                    DECLARED   DECL-LINE  USE-COUNT
