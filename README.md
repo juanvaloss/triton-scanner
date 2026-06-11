@@ -20,16 +20,14 @@ This is the **simplest possible** implementation that:
 - Power (`**`), floor division (`//`), modulo (`%`) operators
 
 ## Build and run
-
-```bash
 sudo apt install -y flex bison gcc make libfl-dev
 make
 ./triton_scanner tests/add_kernel.py            # full pipeline (default)
 ./triton_scanner -l tests/add_kernel.py         # lex only
 ./triton_scanner -p tests/add_kernel.py         # lex + parse
-```
 
-## Token catalogue
+
+##Token catalogue
 
 32 tokens total:
 - 5 keywords (`def`, `return`, `import`, `from`, `as`)
@@ -48,8 +46,6 @@ make
 - Expressions use precedence directives instead of layered E/T/F.
 
 ## Files
-
-```
 Makefile              build pipeline
 triton_scanner.l      lex spec (Phase I)
 triton_parser.y       bison spec (Phase II)
@@ -58,4 +54,6 @@ symtab.h / symtab.c   symbol table
 semantic.h / semantic.c   Phase III checks
 main.c                driver
 tests/                seven .py inputs (valid + lex/syntax/semantic errors)
-```
+
+##Note
+This proyect does not generate code, it is only used to evaluate 
