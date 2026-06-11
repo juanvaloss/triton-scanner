@@ -1,0 +1,134 @@
+We used this site https://www.cs.drexel.edu/~mwb33/dfa_parser/ to generate the DFA diagrams. 
+
+This is the info that we used for each diagram
+#Triton Scanner — Operadores (corresponde a la Table 2 del reporte)
+#Sigma: = < > !   y  x = cualquier otro caracter
+#q1=inicio  q2=ASSIGN  q3=EQ  q4=LT  q5=LE  q6=GT  q7=GE  q8=(vio !)  q9=NEQ  q10=muerto
+symbols=(=,<,>,!,x)
+states=(q1,q2,q3,q4,q5,q6,q7,q8,q9,q10)
+start=q1
+accept=(q2,q3,q4,q5,q6,q7,q9)
+#Transition Table
+if q1 and = then q2
+if q1 and < then q4
+if q1 and > then q6
+if q1 and ! then q8
+if q1 and x then q10
+if q2 and = then q3
+if q2 and < then q10
+if q2 and > then q10
+if q2 and ! then q10
+if q2 and x then q10
+if q3 and = then q10
+if q3 and < then q10
+if q3 and > then q10
+if q3 and ! then q10
+if q3 and x then q10
+if q4 and = then q5
+if q4 and < then q10
+if q4 and > then q10
+if q4 and ! then q10
+if q4 and x then q10
+if q5 and = then q10
+if q5 and < then q10
+if q5 and > then q10
+if q5 and ! then q10
+if q5 and x then q10
+if q6 and = then q7
+if q6 and < then q10
+if q6 and > then q10
+if q6 and ! then q10
+if q6 and x then q10
+if q7 and = then q10
+if q7 and < then q10
+if q7 and > then q10
+if q7 and ! then q10
+if q7 and x then q10
+if q8 and = then q9
+if q8 and < then q10
+if q8 and > then q10
+if q8 and ! then q10
+if q8 and x then q10
+if q9 and = then q10
+if q9 and < then q10
+if q9 and > then q10
+if q9 and ! then q10
+if q9 and x then q10
+if q10 and = then q10
+if q10 and < then q10
+if q10 and > then q10
+if q10 and ! then q10
+if q10 and x then q10
+
+
+#Triton Scanner — Identificadores
+#Sigma: L = letra o _ [A-Za-z_]   D = dígito [0-9]
+#q1=inicio  q2=IDENTIFIER (luego classify_word decide KW/NAMESPACE/TYPE)  q3=muerto
+symbols=(L,D)
+states=(q1,q2,q3)
+start=q1
+accept=(q2)
+#Transition Table
+if q1 and L then q2
+if q1 and D then q3
+if q2 and L then q2
+if q2 and D then q2
+if q3 and L then q3
+if q3 and D then q3
+
+
+#Triton Scanner — Números (INT_LIT y FLOAT_LIT)
+#Sigma: D = dígito [0-9]   . = punto   e = e o E   s = signo + o -
+#q1=inicio  q2=INT_LIT  q3=(punto)  q4=FLOAT_LIT(frac)  q5=(exp)  q6=(signo exp)  q7=FLOAT_LIT(exp)  q8=muerto
+symbols=(D,.,e,s)
+states=(q1,q2,q3,q4,q5,q6,q7,q8)
+start=q1
+accept=(q2,q4,q7)
+#Transition Table
+if q1 and D then q2
+if q1 and . then q8
+if q1 and e then q8
+if q1 and s then q8
+if q2 and D then q2
+if q2 and . then q3
+if q2 and e then q5
+if q2 and s then q8
+if q3 and D then q4
+if q3 and . then q8
+if q3 and e then q8
+if q3 and s then q8
+if q4 and D then q4
+if q4 and . then q8
+if q4 and e then q5
+if q4 and s then q8
+if q5 and D then q7
+if q5 and . then q8
+if q5 and e then q8
+if q5 and s then q6
+if q6 and D then q7
+if q6 and . then q8
+if q6 and e then q8
+if q6 and s then q8
+if q7 and D then q7
+if q7 and . then q8
+if q7 and e then q8
+if q7 and s then q8
+if q8 and D then q8
+if q8 and . then q8
+if q8 and e then q8
+if q8 and s then q8
+
+
+#Triton Scanner — Tokens de un solo caracter
+#Sigma: S = uno de  + * / @ ( ) [ ] , : .  o NEWLINE   ;   x = cualquier otro
+#q1=inicio  q2=ACEPTA (PLUS/STAR/SLASH/AT/LPAREN/RPAREN/LBRACKET/RBRACKET/COMMA/COLON/DOT/NEWLINE)  q3=muerto
+symbols=(S,x)
+states=(q1,q2,q3)
+start=q1
+accept=(q2)
+if q1 and S then q2
+if q1 and x then q3
+if q2 and S then q3
+if q2 and x then q3
+if q3 and S then q3
+if q3 and x then q3
