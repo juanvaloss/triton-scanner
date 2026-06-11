@@ -1,6 +1,6 @@
 # Triton Compiler (simple version) — TC3002B
 
-A minimal three-phase compiler front-end for Triton GPU kernels.
+A minimal three-phase (lexical, syntax and semantical) compiler front-end for Triton GPU kernels.
 
 ## Scope
 
@@ -56,4 +56,4 @@ main.c                driver
 tests/                seven .py inputs (valid + lex/syntax/semantic errors)
 
 ##Note
-This proyect does not generate code, it is only used to evaluate 
+This proyect does not generate code, it is only used to evaluate.
